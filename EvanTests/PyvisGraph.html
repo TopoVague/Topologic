@@ -1,0 +1,1053 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: white;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 900px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="0">0</option>
+                                
+                                    <option value="1">1</option>
+                                
+                                    <option value="2">2</option>
+                                
+                                    <option value="3">3</option>
+                                
+                                    <option value="4">4</option>
+                                
+                                    <option value="5">5</option>
+                                
+                                    <option value="6">6</option>
+                                
+                                    <option value="7">7</option>
+                                
+                                    <option value="8">8</option>
+                                
+                                    <option value="9">9</option>
+                                
+                                    <option value="10">10</option>
+                                
+                                    <option value="11">11</option>
+                                
+                                    <option value="12">12</option>
+                                
+                                    <option value="13">13</option>
+                                
+                                    <option value="14">14</option>
+                                
+                                    <option value="15">15</option>
+                                
+                                    <option value="16">16</option>
+                                
+                                    <option value="17">17</option>
+                                
+                                    <option value="18">18</option>
+                                
+                                    <option value="19">19</option>
+                                
+                                    <option value="20">20</option>
+                                
+                                    <option value="21">21</option>
+                                
+                                    <option value="22">22</option>
+                                
+                                    <option value="23">23</option>
+                                
+                                    <option value="24">24</option>
+                                
+                                    <option value="25">25</option>
+                                
+                                    <option value="26">26</option>
+                                
+                                    <option value="27">27</option>
+                                
+                                    <option value="28">28</option>
+                                
+                                    <option value="29">29</option>
+                                
+                                    <option value="30">30</option>
+                                
+                                    <option value="31">31</option>
+                                
+                                    <option value="32">32</option>
+                                
+                                    <option value="33">33</option>
+                                
+                                    <option value="34">34</option>
+                                
+                                    <option value="35">35</option>
+                                
+                                    <option value="36">36</option>
+                                
+                                    <option value="37">37</option>
+                                
+                                    <option value="38">38</option>
+                                
+                                    <option value="39">39</option>
+                                
+                                    <option value="40">40</option>
+                                
+                                    <option value="41">41</option>
+                                
+                                    <option value="42">42</option>
+                                
+                                    <option value="43">43</option>
+                                
+                                    <option value="44">44</option>
+                                
+                                    <option value="45">45</option>
+                                
+                                    <option value="46">46</option>
+                                
+                                    <option value="47">47</option>
+                                
+                                    <option value="48">48</option>
+                                
+                                    <option value="49">49</option>
+                                
+                                    <option value="50">50</option>
+                                
+                                    <option value="51">51</option>
+                                
+                                    <option value="52">52</option>
+                                
+                                    <option value="53">53</option>
+                                
+                                    <option value="54">54</option>
+                                
+                                    <option value="55">55</option>
+                                
+                                    <option value="56">56</option>
+                                
+                                    <option value="57">57</option>
+                                
+                                    <option value="58">58</option>
+                                
+                                    <option value="59">59</option>
+                                
+                                    <option value="60">60</option>
+                                
+                                    <option value="61">61</option>
+                                
+                                    <option value="62">62</option>
+                                
+                                    <option value="63">63</option>
+                                
+                                    <option value="64">64</option>
+                                
+                                    <option value="65">65</option>
+                                
+                                    <option value="66">66</option>
+                                
+                                    <option value="67">67</option>
+                                
+                                    <option value="68">68</option>
+                                
+                                    <option value="69">69</option>
+                                
+                                    <option value="70">70</option>
+                                
+                                    <option value="71">71</option>
+                                
+                                    <option value="72">72</option>
+                                
+                                    <option value="73">73</option>
+                                
+                                    <option value="74">74</option>
+                                
+                                    <option value="75">75</option>
+                                
+                                    <option value="76">76</option>
+                                
+                                    <option value="77">77</option>
+                                
+                                    <option value="78">78</option>
+                                
+                                    <option value="79">79</option>
+                                
+                                    <option value="80">80</option>
+                                
+                                    <option value="81">81</option>
+                                
+                                    <option value="82">82</option>
+                                
+                                    <option value="83">83</option>
+                                
+                                    <option value="84">84</option>
+                                
+                                    <option value="85">85</option>
+                                
+                                    <option value="86">86</option>
+                                
+                                    <option value="87">87</option>
+                                
+                                    <option value="88">88</option>
+                                
+                                    <option value="89">89</option>
+                                
+                                    <option value="90">90</option>
+                                
+                                    <option value="91">91</option>
+                                
+                                    <option value="92">92</option>
+                                
+                                    <option value="93">93</option>
+                                
+                                    <option value="94">94</option>
+                                
+                                    <option value="95">95</option>
+                                
+                                    <option value="96">96</option>
+                                
+                                    <option value="97">97</option>
+                                
+                                    <option value="98">98</option>
+                                
+                                    <option value="99">99</option>
+                                
+                                    <option value="100">100</option>
+                                
+                                    <option value="101">101</option>
+                                
+                                    <option value="102">102</option>
+                                
+                                    <option value="103">103</option>
+                                
+                                    <option value="104">104</option>
+                                
+                                    <option value="105">105</option>
+                                
+                                    <option value="106">106</option>
+                                
+                                    <option value="107">107</option>
+                                
+                                    <option value="108">108</option>
+                                
+                                    <option value="109">109</option>
+                                
+                                    <option value="110">110</option>
+                                
+                                    <option value="111">111</option>
+                                
+                                    <option value="112">112</option>
+                                
+                                    <option value="113">113</option>
+                                
+                                    <option value="114">114</option>
+                                
+                                    <option value="115">115</option>
+                                
+                                    <option value="116">116</option>
+                                
+                                    <option value="117">117</option>
+                                
+                                    <option value="118">118</option>
+                                
+                                    <option value="119">119</option>
+                                
+                                    <option value="120">120</option>
+                                
+                                    <option value="121">121</option>
+                                
+                                    <option value="122">122</option>
+                                
+                                    <option value="123">123</option>
+                                
+                                    <option value="124">124</option>
+                                
+                                    <option value="125">125</option>
+                                
+                                    <option value="126">126</option>
+                                
+                                    <option value="127">127</option>
+                                
+                                    <option value="128">128</option>
+                                
+                                    <option value="129">129</option>
+                                
+                                    <option value="130">130</option>
+                                
+                                    <option value="131">131</option>
+                                
+                                    <option value="132">132</option>
+                                
+                                    <option value="133">133</option>
+                                
+                                    <option value="134">134</option>
+                                
+                                    <option value="135">135</option>
+                                
+                                    <option value="136">136</option>
+                                
+                                    <option value="137">137</option>
+                                
+                                    <option value="138">138</option>
+                                
+                                    <option value="139">139</option>
+                                
+                                    <option value="140">140</option>
+                                
+                                    <option value="141">141</option>
+                                
+                                    <option value="142">142</option>
+                                
+                                    <option value="143">143</option>
+                                
+                                    <option value="144">144</option>
+                                
+                                    <option value="145">145</option>
+                                
+                                    <option value="146">146</option>
+                                
+                                    <option value="147">147</option>
+                                
+                                    <option value="148">148</option>
+                                
+                                    <option value="149">149</option>
+                                
+                                    <option value="150">150</option>
+                                
+                                    <option value="151">151</option>
+                                
+                                    <option value="152">152</option>
+                                
+                                    <option value="153">153</option>
+                                
+                                    <option value="154">154</option>
+                                
+                                    <option value="155">155</option>
+                                
+                                    <option value="156">156</option>
+                                
+                                    <option value="157">157</option>
+                                
+                                    <option value="158">158</option>
+                                
+                                    <option value="159">159</option>
+                                
+                                    <option value="160">160</option>
+                                
+                                    <option value="161">161</option>
+                                
+                                    <option value="162">162</option>
+                                
+                                    <option value="163">163</option>
+                                
+                                    <option value="164">164</option>
+                                
+                                    <option value="165">165</option>
+                                
+                                    <option value="166">166</option>
+                                
+                                    <option value="167">167</option>
+                                
+                                    <option value="168">168</option>
+                                
+                                    <option value="169">169</option>
+                                
+                                    <option value="170">170</option>
+                                
+                                    <option value="171">171</option>
+                                
+                                    <option value="172">172</option>
+                                
+                                    <option value="173">173</option>
+                                
+                                    <option value="174">174</option>
+                                
+                                    <option value="175">175</option>
+                                
+                                    <option value="176">176</option>
+                                
+                                    <option value="177">177</option>
+                                
+                                    <option value="178">178</option>
+                                
+                                    <option value="179">179</option>
+                                
+                                    <option value="180">180</option>
+                                
+                                    <option value="181">181</option>
+                                
+                                    <option value="182">182</option>
+                                
+                                    <option value="183">183</option>
+                                
+                                    <option value="184">184</option>
+                                
+                                    <option value="185">185</option>
+                                
+                                    <option value="186">186</option>
+                                
+                                    <option value="187">187</option>
+                                
+                                    <option value="188">188</option>
+                                
+                                    <option value="189">189</option>
+                                
+                                    <option value="190">190</option>
+                                
+                                    <option value="191">191</option>
+                                
+                                    <option value="192">192</option>
+                                
+                                    <option value="193">193</option>
+                                
+                                    <option value="194">194</option>
+                                
+                                    <option value="195">195</option>
+                                
+                                    <option value="196">196</option>
+                                
+                                    <option value="197">197</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#FAA63D", "font": {"color": "black"}, "id": 0, "label": "internalHorizontalFaces", "shape": "dot", "title": "0: internalHorizontalFaces\nNeighbors:\n113: Cells\n2: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 1, "label": "topHorizontalFaces", "shape": "dot", "title": "1: topHorizontalFaces\nNeighbors:\n7: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 2, "label": "Cells", "shape": "dot", "title": "2: Cells\nNeighbors:\n0: internalHorizontalFaces\n161: Cells\n4: internalVerticalFaces\n7: Cells\n9: internalVerticalFaces\n11: topHorizontalFaces\n14: externalVerticalFaces\n113: Cells\n20: Cells\n29: internalVerticalFaces", "value": 10}, {"color": "#3D349A", "font": {"color": "black"}, "id": 3, "label": "internalVerticalFaces", "shape": "dot", "title": "3: internalVerticalFaces\nNeighbors:\n158: Cells\n7: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 4, "label": "internalVerticalFaces", "shape": "dot", "title": "4: internalVerticalFaces\nNeighbors:\n161: Cells\n2: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 5, "label": "internalVerticalFaces", "shape": "dot", "title": "5: internalVerticalFaces\nNeighbors:\n113: Cells\n147: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 6, "label": "externalVerticalFaces", "shape": "dot", "title": "6: externalVerticalFaces\nNeighbors:\n113: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 7, "label": "Cells", "shape": "dot", "title": "7: Cells\nNeighbors:\n1: topHorizontalFaces\n2: Cells\n3: internalVerticalFaces\n70: internalHorizontalFaces\n71: Cells\n9: internalVerticalFaces\n74: internalVerticalFaces\n77: Cells\n20: Cells\n28: internalVerticalFaces\n158: Cells", "value": 11}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 8, "label": "bottomHorizontalFaces", "shape": "dot", "title": "8: bottomHorizontalFaces\nNeighbors:\n113: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 9, "label": "internalVerticalFaces", "shape": "dot", "title": "9: internalVerticalFaces\nNeighbors:\n2: Cells\n7: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 10, "label": "Cells", "shape": "dot", "title": "10: Cells\nNeighbors:\n102: Cells\n170: Cells\n13: internalVerticalFaces\n78: internalVerticalFaces\n20: Cells\n117: internalHorizontalFaces\n118: Cells\n91: topHorizontalFaces\n92: externalVerticalFaces\n31: internalVerticalFaces", "value": 10}, {"color": "#8A518B", "font": {"color": "black"}, "id": 11, "label": "topHorizontalFaces", "shape": "dot", "title": "11: topHorizontalFaces\nNeighbors:\n2: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 12, "label": "bottomHorizontalFaces", "shape": "dot", "title": "12: bottomHorizontalFaces\nNeighbors:\n15: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 13, "label": "internalVerticalFaces", "shape": "dot", "title": "13: internalVerticalFaces\nNeighbors:\n170: Cells\n10: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 14, "label": "externalVerticalFaces", "shape": "dot", "title": "14: externalVerticalFaces\nNeighbors:\n2: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 15, "label": "Cells", "shape": "dot", "title": "15: Cells\nNeighbors:\n33: internalVerticalFaces\n101: Cells\n165: Cells\n102: Cells\n12: bottomHorizontalFaces\n16: internalVerticalFaces\n17: internalVerticalFaces\n18: internalHorizontalFaces\n116: internalVerticalFaces\n20: Cells\n118: Cells", "value": 11}, {"color": "#3D349A", "font": {"color": "black"}, "id": 16, "label": "internalVerticalFaces", "shape": "dot", "title": "16: internalVerticalFaces\nNeighbors:\n101: Cells\n15: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 17, "label": "internalVerticalFaces", "shape": "dot", "title": "17: internalVerticalFaces\nNeighbors:\n165: Cells\n15: Cells", "value": 2}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 18, "label": "internalHorizontalFaces", "shape": "dot", "title": "18: internalHorizontalFaces\nNeighbors:\n102: Cells\n15: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 19, "label": "internalVerticalFaces", "shape": "dot", "title": "19: internalVerticalFaces\nNeighbors:\n56: Cells\n20: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 20, "label": "Cells", "shape": "dot", "title": "20: Cells\nNeighbors:\n2: Cells\n7: Cells\n10: Cells\n15: Cells\n19: internalVerticalFaces\n21: internalVerticalFaces\n22: internalVerticalFaces\n23: internalVerticalFaces\n24: internalVerticalFaces\n25: internalVerticalFaces\n26: internalVerticalFaces\n28: internalVerticalFaces\n29: internalVerticalFaces\n30: internalVerticalFaces\n31: internalVerticalFaces\n32: internalVerticalFaces\n33: internalVerticalFaces\n34: internalVerticalFaces\n35: bottomHorizontalFaces\n36: bottomHorizontalFaces\n37: internalVerticalFaces\n38: externalVerticalFaces\n39: bottomHorizontalFaces\n40: bottomHorizontalFaces\n41: internalVerticalFaces\n42: externalVerticalFaces\n43: externalVerticalFaces\n44: externalVerticalFaces\n45: topHorizontalFaces\n46: bottomHorizontalFaces\n47: externalVerticalFaces\n48: bottomHorizontalFaces\n49: externalVerticalFaces\n50: externalVerticalFaces\n51: externalVerticalFaces\n52: bottomHorizontalFaces\n53: bottomHorizontalFaces\n54: bottomHorizontalFaces\n55: externalVerticalFaces\n56: Cells\n57: externalVerticalFaces\n59: bottomHorizontalFaces\n60: externalVerticalFaces\n61: bottomHorizontalFaces\n62: externalVerticalFaces\n63: externalVerticalFaces\n64: externalVerticalFaces\n65: externalVerticalFaces\n66: externalVerticalFaces\n67: bottomHorizontalFaces\n71: Cells\n77: Cells\n79: Cells\n88: Cells\n95: Cells\n101: Cells\n102: Cells\n103: Cells\n110: Cells\n113: Cells\n118: Cells", "value": 61}, {"color": "#3D349A", "font": {"color": "black"}, "id": 21, "label": "internalVerticalFaces", "shape": "dot", "title": "21: internalVerticalFaces\nNeighbors:\n88: Cells\n20: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 22, "label": "internalVerticalFaces", "shape": "dot", "title": "22: internalVerticalFaces\nNeighbors:\n113: Cells\n20: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 23, "label": "internalVerticalFaces", "shape": "dot", "title": "23: internalVerticalFaces\nNeighbors:\n20: Cells\n71: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 24, "label": "internalVerticalFaces", "shape": "dot", "title": "24: internalVerticalFaces\nNeighbors:\n20: Cells\n79: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 25, "label": "internalVerticalFaces", "shape": "dot", "title": "25: internalVerticalFaces\nNeighbors:\n20: Cells\n77: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 26, "label": "internalVerticalFaces", "shape": "dot", "title": "26: internalVerticalFaces\nNeighbors:\n20: Cells\n118: Cells", "value": 2}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 27, "label": "internalHorizontalFaces", "shape": "dot", "title": "27: internalHorizontalFaces\nNeighbors:\n56: Cells\n79: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 28, "label": "internalVerticalFaces", "shape": "dot", "title": "28: internalVerticalFaces\nNeighbors:\n20: Cells\n7: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 29, "label": "internalVerticalFaces", "shape": "dot", "title": "29: internalVerticalFaces\nNeighbors:\n2: Cells\n20: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 30, "label": "internalVerticalFaces", "shape": "dot", "title": "30: internalVerticalFaces\nNeighbors:\n20: Cells\n95: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 31, "label": "internalVerticalFaces", "shape": "dot", "title": "31: internalVerticalFaces\nNeighbors:\n10: Cells\n20: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 32, "label": "internalVerticalFaces", "shape": "dot", "title": "32: internalVerticalFaces\nNeighbors:\n20: Cells\n101: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 33, "label": "internalVerticalFaces", "shape": "dot", "title": "33: internalVerticalFaces\nNeighbors:\n20: Cells\n15: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 34, "label": "internalVerticalFaces", "shape": "dot", "title": "34: internalVerticalFaces\nNeighbors:\n20: Cells\n102: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 35, "label": "bottomHorizontalFaces", "shape": "dot", "title": "35: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 36, "label": "bottomHorizontalFaces", "shape": "dot", "title": "36: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 37, "label": "internalVerticalFaces", "shape": "dot", "title": "37: internalVerticalFaces\nNeighbors:\n20: Cells\n103: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 38, "label": "externalVerticalFaces", "shape": "dot", "title": "38: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 39, "label": "bottomHorizontalFaces", "shape": "dot", "title": "39: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 40, "label": "bottomHorizontalFaces", "shape": "dot", "title": "40: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 41, "label": "internalVerticalFaces", "shape": "dot", "title": "41: internalVerticalFaces\nNeighbors:\n20: Cells\n110: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 42, "label": "externalVerticalFaces", "shape": "dot", "title": "42: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 43, "label": "externalVerticalFaces", "shape": "dot", "title": "43: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 44, "label": "externalVerticalFaces", "shape": "dot", "title": "44: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 45, "label": "topHorizontalFaces", "shape": "dot", "title": "45: topHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 46, "label": "bottomHorizontalFaces", "shape": "dot", "title": "46: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 47, "label": "externalVerticalFaces", "shape": "dot", "title": "47: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 48, "label": "bottomHorizontalFaces", "shape": "dot", "title": "48: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 49, "label": "externalVerticalFaces", "shape": "dot", "title": "49: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 50, "label": "externalVerticalFaces", "shape": "dot", "title": "50: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 51, "label": "externalVerticalFaces", "shape": "dot", "title": "51: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 52, "label": "bottomHorizontalFaces", "shape": "dot", "title": "52: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 53, "label": "bottomHorizontalFaces", "shape": "dot", "title": "53: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 54, "label": "bottomHorizontalFaces", "shape": "dot", "title": "54: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 55, "label": "externalVerticalFaces", "shape": "dot", "title": "55: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 56, "label": "Cells", "shape": "dot", "title": "56: Cells\nNeighbors:\n68: internalVerticalFaces\n138: Cells\n79: Cells\n81: externalVerticalFaces\n19: internalVerticalFaces\n20: Cells\n87: bottomHorizontalFaces\n88: Cells\n58: internalVerticalFaces\n27: internalHorizontalFaces", "value": 10}, {"color": "#032333", "font": {"color": "black"}, "id": 57, "label": "externalVerticalFaces", "shape": "dot", "title": "57: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 58, "label": "internalVerticalFaces", "shape": "dot", "title": "58: internalVerticalFaces\nNeighbors:\n56: Cells\n88: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 59, "label": "bottomHorizontalFaces", "shape": "dot", "title": "59: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 60, "label": "externalVerticalFaces", "shape": "dot", "title": "60: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 61, "label": "bottomHorizontalFaces", "shape": "dot", "title": "61: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 62, "label": "externalVerticalFaces", "shape": "dot", "title": "62: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 63, "label": "externalVerticalFaces", "shape": "dot", "title": "63: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 64, "label": "externalVerticalFaces", "shape": "dot", "title": "64: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 65, "label": "externalVerticalFaces", "shape": "dot", "title": "65: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 66, "label": "externalVerticalFaces", "shape": "dot", "title": "66: externalVerticalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 67, "label": "bottomHorizontalFaces", "shape": "dot", "title": "67: bottomHorizontalFaces\nNeighbors:\n20: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 68, "label": "internalVerticalFaces", "shape": "dot", "title": "68: internalVerticalFaces\nNeighbors:\n56: Cells\n138: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 69, "label": "internalVerticalFaces", "shape": "dot", "title": "69: internalVerticalFaces\nNeighbors:\n113: Cells\n71: Cells", "value": 2}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 70, "label": "internalHorizontalFaces", "shape": "dot", "title": "70: internalHorizontalFaces\nNeighbors:\n71: Cells\n7: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 71, "label": "Cells", "shape": "dot", "title": "71: Cells\nNeighbors:\n69: internalVerticalFaces\n70: internalHorizontalFaces\n7: Cells\n73: internalVerticalFaces\n113: Cells\n20: Cells\n84: bottomHorizontalFaces\n23: internalVerticalFaces\n88: Cells\n89: internalVerticalFaces\n127: Cells", "value": 11}, {"color": "#8A518B", "font": {"color": "black"}, "id": 72, "label": "topHorizontalFaces", "shape": "dot", "title": "72: topHorizontalFaces\nNeighbors:\n79: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 73, "label": "internalVerticalFaces", "shape": "dot", "title": "73: internalVerticalFaces\nNeighbors:\n127: Cells\n71: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 74, "label": "internalVerticalFaces", "shape": "dot", "title": "74: internalVerticalFaces\nNeighbors:\n77: Cells\n7: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 75, "label": "internalVerticalFaces", "shape": "dot", "title": "75: internalVerticalFaces\nNeighbors:\n145: Cells\n77: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 76, "label": "topHorizontalFaces", "shape": "dot", "title": "76: topHorizontalFaces\nNeighbors:\n77: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 77, "label": "Cells", "shape": "dot", "title": "77: Cells\nNeighbors:\n7: Cells\n74: internalVerticalFaces\n75: internalVerticalFaces\n76: topHorizontalFaces\n79: Cells\n80: internalHorizontalFaces\n145: Cells\n20: Cells\n85: internalVerticalFaces\n88: Cells\n25: internalVerticalFaces", "value": 11}, {"color": "#3D349A", "font": {"color": "black"}, "id": 78, "label": "internalVerticalFaces", "shape": "dot", "title": "78: internalVerticalFaces\nNeighbors:\n10: Cells\n102: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 79, "label": "Cells", "shape": "dot", "title": "79: Cells\nNeighbors:\n129: Cells\n72: topHorizontalFaces\n77: Cells\n82: internalVerticalFaces\n20: Cells\n85: internalVerticalFaces\n86: externalVerticalFaces\n24: internalVerticalFaces\n56: Cells\n27: internalHorizontalFaces", "value": 10}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 80, "label": "internalHorizontalFaces", "shape": "dot", "title": "80: internalHorizontalFaces\nNeighbors:\n88: Cells\n77: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 81, "label": "externalVerticalFaces", "shape": "dot", "title": "81: externalVerticalFaces\nNeighbors:\n56: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 82, "label": "internalVerticalFaces", "shape": "dot", "title": "82: internalVerticalFaces\nNeighbors:\n129: Cells\n79: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 83, "label": "internalVerticalFaces", "shape": "dot", "title": "83: internalVerticalFaces\nNeighbors:\n88: Cells\n121: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 84, "label": "bottomHorizontalFaces", "shape": "dot", "title": "84: bottomHorizontalFaces\nNeighbors:\n71: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 85, "label": "internalVerticalFaces", "shape": "dot", "title": "85: internalVerticalFaces\nNeighbors:\n77: Cells\n79: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 86, "label": "externalVerticalFaces", "shape": "dot", "title": "86: externalVerticalFaces\nNeighbors:\n79: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 87, "label": "bottomHorizontalFaces", "shape": "dot", "title": "87: bottomHorizontalFaces\nNeighbors:\n56: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 88, "label": "Cells", "shape": "dot", "title": "88: Cells\nNeighbors:\n89: internalVerticalFaces\n90: bottomHorizontalFaces\n71: Cells\n77: Cells\n80: internalHorizontalFaces\n83: internalVerticalFaces\n20: Cells\n21: internalVerticalFaces\n56: Cells\n121: Cells\n58: internalVerticalFaces", "value": 11}, {"color": "#3D349A", "font": {"color": "black"}, "id": 89, "label": "internalVerticalFaces", "shape": "dot", "title": "89: internalVerticalFaces\nNeighbors:\n88: Cells\n71: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 90, "label": "bottomHorizontalFaces", "shape": "dot", "title": "90: bottomHorizontalFaces\nNeighbors:\n88: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 91, "label": "topHorizontalFaces", "shape": "dot", "title": "91: topHorizontalFaces\nNeighbors:\n10: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 92, "label": "externalVerticalFaces", "shape": "dot", "title": "92: externalVerticalFaces\nNeighbors:\n10: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 93, "label": "topHorizontalFaces", "shape": "dot", "title": "93: topHorizontalFaces\nNeighbors:\n102: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 94, "label": "bottomHorizontalFaces", "shape": "dot", "title": "94: bottomHorizontalFaces\nNeighbors:\n101: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 95, "label": "Cells", "shape": "dot", "title": "95: Cells\nNeighbors:\n103: Cells\n104: internalHorizontalFaces\n105: externalVerticalFaces\n106: internalVerticalFaces\n107: topHorizontalFaces\n108: internalVerticalFaces\n110: Cells\n180: Cells\n20: Cells\n30: internalVerticalFaces", "value": 10}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 96, "label": "internalHorizontalFaces", "shape": "dot", "title": "96: internalHorizontalFaces\nNeighbors:\n101: Cells\n110: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 97, "label": "internalVerticalFaces", "shape": "dot", "title": "97: internalVerticalFaces\nNeighbors:\n101: Cells\n103: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 98, "label": "internalVerticalFaces", "shape": "dot", "title": "98: internalVerticalFaces\nNeighbors:\n101: Cells\n182: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 99, "label": "internalVerticalFaces", "shape": "dot", "title": "99: internalVerticalFaces\nNeighbors:\n110: Cells\n102: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 100, "label": "internalVerticalFaces", "shape": "dot", "title": "100: internalVerticalFaces\nNeighbors:\n184: Cells\n102: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 101, "label": "Cells", "shape": "dot", "title": "101: Cells\nNeighbors:\n32: internalVerticalFaces\n96: internalHorizontalFaces\n97: internalVerticalFaces\n98: internalVerticalFaces\n103: Cells\n110: Cells\n15: Cells\n16: internalVerticalFaces\n20: Cells\n182: Cells\n94: bottomHorizontalFaces", "value": 11}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 102, "label": "Cells", "shape": "dot", "title": "102: Cells\nNeighbors:\n34: internalVerticalFaces\n99: internalVerticalFaces\n100: internalVerticalFaces\n10: Cells\n78: internalVerticalFaces\n15: Cells\n110: Cells\n18: internalHorizontalFaces\n20: Cells\n184: Cells\n93: topHorizontalFaces", "value": 11}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 103, "label": "Cells", "shape": "dot", "title": "103: Cells\nNeighbors:\n97: internalVerticalFaces\n101: Cells\n37: internalVerticalFaces\n133: externalVerticalFaces\n104: internalHorizontalFaces\n136: bottomHorizontalFaces\n140: internalVerticalFaces\n20: Cells\n187: Cells\n95: Cells", "value": 10}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 104, "label": "internalHorizontalFaces", "shape": "dot", "title": "104: internalHorizontalFaces\nNeighbors:\n103: Cells\n95: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 105, "label": "externalVerticalFaces", "shape": "dot", "title": "105: externalVerticalFaces\nNeighbors:\n95: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 106, "label": "internalVerticalFaces", "shape": "dot", "title": "106: internalVerticalFaces\nNeighbors:\n110: Cells\n95: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 107, "label": "topHorizontalFaces", "shape": "dot", "title": "107: topHorizontalFaces\nNeighbors:\n95: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 108, "label": "internalVerticalFaces", "shape": "dot", "title": "108: internalVerticalFaces\nNeighbors:\n180: Cells\n95: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 109, "label": "topHorizontalFaces", "shape": "dot", "title": "109: topHorizontalFaces\nNeighbors:\n110: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 110, "label": "Cells", "shape": "dot", "title": "110: Cells\nNeighbors:\n96: internalHorizontalFaces\n193: Cells\n99: internalVerticalFaces\n101: Cells\n102: Cells\n41: internalVerticalFaces\n106: internalVerticalFaces\n109: topHorizontalFaces\n111: internalVerticalFaces\n20: Cells\n95: Cells", "value": 11}, {"color": "#3D349A", "font": {"color": "black"}, "id": 111, "label": "internalVerticalFaces", "shape": "dot", "title": "111: internalVerticalFaces\nNeighbors:\n193: Cells\n110: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 112, "label": "externalVerticalFaces", "shape": "dot", "title": "112: externalVerticalFaces\nNeighbors:\n118: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 113, "label": "Cells", "shape": "dot", "title": "113: Cells\nNeighbors:\n0: internalHorizontalFaces\n2: Cells\n5: internalVerticalFaces\n6: externalVerticalFaces\n69: internalVerticalFaces\n8: bottomHorizontalFaces\n71: Cells\n147: Cells\n20: Cells\n22: internalVerticalFaces", "value": 10}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 114, "label": "bottomHorizontalFaces", "shape": "dot", "title": "114: bottomHorizontalFaces\nNeighbors:\n118: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 115, "label": "internalVerticalFaces", "shape": "dot", "title": "115: internalVerticalFaces\nNeighbors:\n118: Cells\n150: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 116, "label": "internalVerticalFaces", "shape": "dot", "title": "116: internalVerticalFaces\nNeighbors:\n118: Cells\n15: Cells", "value": 2}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 117, "label": "internalHorizontalFaces", "shape": "dot", "title": "117: internalHorizontalFaces\nNeighbors:\n10: Cells\n118: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 118, "label": "Cells", "shape": "dot", "title": "118: Cells\nNeighbors:\n10: Cells\n15: Cells\n112: externalVerticalFaces\n114: bottomHorizontalFaces\n115: internalVerticalFaces\n20: Cells\n116: internalVerticalFaces\n117: internalHorizontalFaces\n150: Cells\n26: internalVerticalFaces", "value": 10}, {"color": "#032333", "font": {"color": "black"}, "id": 119, "label": "externalVerticalFaces", "shape": "dot", "title": "119: externalVerticalFaces\nNeighbors:\n129: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 120, "label": "externalVerticalFaces", "shape": "dot", "title": "120: externalVerticalFaces\nNeighbors:\n129: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 121, "label": "Cells", "shape": "dot", "title": "121: Cells\nNeighbors:\n128: externalVerticalFaces\n131: internalHorizontalFaces\n132: internalVerticalFaces\n138: Cells\n145: Cells\n83: internalVerticalFaces\n88: Cells\n122: bottomHorizontalFaces\n126: internalVerticalFaces\n127: Cells", "value": 10}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 122, "label": "bottomHorizontalFaces", "shape": "dot", "title": "122: bottomHorizontalFaces\nNeighbors:\n121: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 123, "label": "internalVerticalFaces", "shape": "dot", "title": "123: internalVerticalFaces\nNeighbors:\n129: Cells\n145: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 124, "label": "internalVerticalFaces", "shape": "dot", "title": "124: internalVerticalFaces\nNeighbors:\n147: Cells\n127: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 125, "label": "topHorizontalFaces", "shape": "dot", "title": "125: topHorizontalFaces\nNeighbors:\n129: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 126, "label": "internalVerticalFaces", "shape": "dot", "title": "126: internalVerticalFaces\nNeighbors:\n121: Cells\n127: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 127, "label": "Cells", "shape": "dot", "title": "127: Cells\nNeighbors:\n130: internalHorizontalFaces\n71: Cells\n73: internalVerticalFaces\n141: bottomHorizontalFaces\n147: Cells\n152: externalVerticalFaces\n121: Cells\n158: Cells\n124: internalVerticalFaces\n126: internalVerticalFaces", "value": 10}, {"color": "#032333", "font": {"color": "black"}, "id": 128, "label": "externalVerticalFaces", "shape": "dot", "title": "128: externalVerticalFaces\nNeighbors:\n121: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 129, "label": "Cells", "shape": "dot", "title": "129: Cells\nNeighbors:\n137: internalHorizontalFaces\n138: Cells\n79: Cells\n145: Cells\n82: internalVerticalFaces\n119: externalVerticalFaces\n120: externalVerticalFaces\n123: internalVerticalFaces\n125: topHorizontalFaces", "value": 9}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 130, "label": "internalHorizontalFaces", "shape": "dot", "title": "130: internalHorizontalFaces\nNeighbors:\n158: Cells\n127: Cells", "value": 2}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 131, "label": "internalHorizontalFaces", "shape": "dot", "title": "131: internalHorizontalFaces\nNeighbors:\n121: Cells\n145: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 132, "label": "internalVerticalFaces", "shape": "dot", "title": "132: internalVerticalFaces\nNeighbors:\n121: Cells\n138: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 133, "label": "externalVerticalFaces", "shape": "dot", "title": "133: externalVerticalFaces\nNeighbors:\n103: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 134, "label": "externalVerticalFaces", "shape": "dot", "title": "134: externalVerticalFaces\nNeighbors:\n138: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 135, "label": "externalVerticalFaces", "shape": "dot", "title": "135: externalVerticalFaces\nNeighbors:\n138: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 136, "label": "bottomHorizontalFaces", "shape": "dot", "title": "136: bottomHorizontalFaces\nNeighbors:\n103: Cells", "value": 1}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 137, "label": "internalHorizontalFaces", "shape": "dot", "title": "137: internalHorizontalFaces\nNeighbors:\n129: Cells\n138: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 138, "label": "Cells", "shape": "dot", "title": "138: Cells\nNeighbors:\n129: Cells\n68: internalVerticalFaces\n132: internalVerticalFaces\n134: externalVerticalFaces\n135: externalVerticalFaces\n137: internalHorizontalFaces\n139: bottomHorizontalFaces\n56: Cells\n121: Cells", "value": 9}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 139, "label": "bottomHorizontalFaces", "shape": "dot", "title": "139: bottomHorizontalFaces\nNeighbors:\n138: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 140, "label": "internalVerticalFaces", "shape": "dot", "title": "140: internalVerticalFaces\nNeighbors:\n187: Cells\n103: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 141, "label": "bottomHorizontalFaces", "shape": "dot", "title": "141: bottomHorizontalFaces\nNeighbors:\n127: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 142, "label": "externalVerticalFaces", "shape": "dot", "title": "142: externalVerticalFaces\nNeighbors:\n150: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 143, "label": "externalVerticalFaces", "shape": "dot", "title": "143: externalVerticalFaces\nNeighbors:\n145: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 144, "label": "externalVerticalFaces", "shape": "dot", "title": "144: externalVerticalFaces\nNeighbors:\n150: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 145, "label": "Cells", "shape": "dot", "title": "145: Cells\nNeighbors:\n129: Cells\n131: internalHorizontalFaces\n75: internalVerticalFaces\n77: Cells\n143: externalVerticalFaces\n148: topHorizontalFaces\n149: internalVerticalFaces\n121: Cells\n123: internalVerticalFaces\n158: Cells", "value": 10}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 146, "label": "internalHorizontalFaces", "shape": "dot", "title": "146: internalHorizontalFaces\nNeighbors:\n170: Cells\n150: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 147, "label": "Cells", "shape": "dot", "title": "147: Cells\nNeighbors:\n161: Cells\n162: internalHorizontalFaces\n5: internalVerticalFaces\n113: Cells\n156: externalVerticalFaces\n154: bottomHorizontalFaces\n155: externalVerticalFaces\n124: internalVerticalFaces\n127: Cells", "value": 9}, {"color": "#8A518B", "font": {"color": "black"}, "id": 148, "label": "topHorizontalFaces", "shape": "dot", "title": "148: topHorizontalFaces\nNeighbors:\n145: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 149, "label": "internalVerticalFaces", "shape": "dot", "title": "149: internalVerticalFaces\nNeighbors:\n145: Cells\n158: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 150, "label": "Cells", "shape": "dot", "title": "150: Cells\nNeighbors:\n165: Cells\n170: Cells\n142: externalVerticalFaces\n144: externalVerticalFaces\n146: internalHorizontalFaces\n115: internalVerticalFaces\n118: Cells\n151: bottomHorizontalFaces\n153: internalVerticalFaces", "value": 9}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 151, "label": "bottomHorizontalFaces", "shape": "dot", "title": "151: bottomHorizontalFaces\nNeighbors:\n150: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 152, "label": "externalVerticalFaces", "shape": "dot", "title": "152: externalVerticalFaces\nNeighbors:\n127: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 153, "label": "internalVerticalFaces", "shape": "dot", "title": "153: internalVerticalFaces\nNeighbors:\n165: Cells\n150: Cells", "value": 2}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 154, "label": "bottomHorizontalFaces", "shape": "dot", "title": "154: bottomHorizontalFaces\nNeighbors:\n147: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 155, "label": "externalVerticalFaces", "shape": "dot", "title": "155: externalVerticalFaces\nNeighbors:\n147: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 156, "label": "externalVerticalFaces", "shape": "dot", "title": "156: externalVerticalFaces\nNeighbors:\n147: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 157, "label": "topHorizontalFaces", "shape": "dot", "title": "157: topHorizontalFaces\nNeighbors:\n158: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 158, "label": "Cells", "shape": "dot", "title": "158: Cells\nNeighbors:\n160: internalVerticalFaces\n161: Cells\n130: internalHorizontalFaces\n3: internalVerticalFaces\n159: externalVerticalFaces\n7: Cells\n145: Cells\n149: internalVerticalFaces\n157: topHorizontalFaces\n127: Cells", "value": 10}, {"color": "#032333", "font": {"color": "black"}, "id": 159, "label": "externalVerticalFaces", "shape": "dot", "title": "159: externalVerticalFaces\nNeighbors:\n158: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 160, "label": "internalVerticalFaces", "shape": "dot", "title": "160: internalVerticalFaces\nNeighbors:\n161: Cells\n158: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 161, "label": "Cells", "shape": "dot", "title": "161: Cells\nNeighbors:\n160: internalVerticalFaces\n2: Cells\n162: internalHorizontalFaces\n4: internalVerticalFaces\n171: externalVerticalFaces\n172: topHorizontalFaces\n173: externalVerticalFaces\n147: Cells\n158: Cells", "value": 9}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 162, "label": "internalHorizontalFaces", "shape": "dot", "title": "162: internalHorizontalFaces\nNeighbors:\n161: Cells\n147: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 163, "label": "externalVerticalFaces", "shape": "dot", "title": "163: externalVerticalFaces\nNeighbors:\n170: Cells", "value": 1}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 164, "label": "internalHorizontalFaces", "shape": "dot", "title": "164: internalHorizontalFaces\nNeighbors:\n184: Cells\n165: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 165, "label": "Cells", "shape": "dot", "title": "165: Cells\nNeighbors:\n164: internalHorizontalFaces\n166: bottomHorizontalFaces\n167: externalVerticalFaces\n169: internalVerticalFaces\n15: Cells\n17: internalVerticalFaces\n150: Cells\n182: Cells\n184: Cells\n153: internalVerticalFaces", "value": 10}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 166, "label": "bottomHorizontalFaces", "shape": "dot", "title": "166: bottomHorizontalFaces\nNeighbors:\n165: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 167, "label": "externalVerticalFaces", "shape": "dot", "title": "167: externalVerticalFaces\nNeighbors:\n165: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 168, "label": "internalVerticalFaces", "shape": "dot", "title": "168: internalVerticalFaces\nNeighbors:\n184: Cells\n170: Cells", "value": 2}, {"color": "#3D349A", "font": {"color": "black"}, "id": 169, "label": "internalVerticalFaces", "shape": "dot", "title": "169: internalVerticalFaces\nNeighbors:\n165: Cells\n182: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 170, "label": "Cells", "shape": "dot", "title": "170: Cells\nNeighbors:\n163: externalVerticalFaces\n168: internalVerticalFaces\n10: Cells\n13: internalVerticalFaces\n146: internalHorizontalFaces\n178: topHorizontalFaces\n150: Cells\n184: Cells\n185: externalVerticalFaces", "value": 9}, {"color": "#032333", "font": {"color": "black"}, "id": 171, "label": "externalVerticalFaces", "shape": "dot", "title": "171: externalVerticalFaces\nNeighbors:\n161: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 172, "label": "topHorizontalFaces", "shape": "dot", "title": "172: topHorizontalFaces\nNeighbors:\n161: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 173, "label": "externalVerticalFaces", "shape": "dot", "title": "173: externalVerticalFaces\nNeighbors:\n161: Cells", "value": 1}, {"color": "#8A518B", "font": {"color": "black"}, "id": 174, "label": "topHorizontalFaces", "shape": "dot", "title": "174: topHorizontalFaces\nNeighbors:\n184: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 175, "label": "bottomHorizontalFaces", "shape": "dot", "title": "175: bottomHorizontalFaces\nNeighbors:\n182: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 176, "label": "externalVerticalFaces", "shape": "dot", "title": "176: externalVerticalFaces\nNeighbors:\n184: Cells", "value": 1}, {"color": "#3D349A", "font": {"color": "black"}, "id": 177, "label": "internalVerticalFaces", "shape": "dot", "title": "177: internalVerticalFaces\nNeighbors:\n187: Cells\n182: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 178, "label": "topHorizontalFaces", "shape": "dot", "title": "178: topHorizontalFaces\nNeighbors:\n170: Cells", "value": 1}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 179, "label": "internalHorizontalFaces", "shape": "dot", "title": "179: internalHorizontalFaces\nNeighbors:\n193: Cells\n182: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 180, "label": "Cells", "shape": "dot", "title": "180: Cells\nNeighbors:\n192: externalVerticalFaces\n191: topHorizontalFaces\n194: internalVerticalFaces\n193: Cells\n195: externalVerticalFaces\n108: internalVerticalFaces\n187: Cells\n190: internalHorizontalFaces\n95: Cells", "value": 9}, {"color": "#032333", "font": {"color": "black"}, "id": 181, "label": "externalVerticalFaces", "shape": "dot", "title": "181: externalVerticalFaces\nNeighbors:\n182: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 182, "label": "Cells", "shape": "dot", "title": "182: Cells\nNeighbors:\n193: Cells\n98: internalVerticalFaces\n101: Cells\n165: Cells\n169: internalVerticalFaces\n175: bottomHorizontalFaces\n177: internalVerticalFaces\n179: internalHorizontalFaces\n181: externalVerticalFaces\n187: Cells", "value": 10}, {"color": "#3D349A", "font": {"color": "black"}, "id": 183, "label": "internalVerticalFaces", "shape": "dot", "title": "183: internalVerticalFaces\nNeighbors:\n184: Cells\n193: Cells", "value": 2}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 184, "label": "Cells", "shape": "dot", "title": "184: Cells\nNeighbors:\n193: Cells\n164: internalHorizontalFaces\n100: internalVerticalFaces\n165: Cells\n102: Cells\n168: internalVerticalFaces\n170: Cells\n174: topHorizontalFaces\n176: externalVerticalFaces\n183: internalVerticalFaces", "value": 10}, {"color": "#032333", "font": {"color": "black"}, "id": 185, "label": "externalVerticalFaces", "shape": "dot", "title": "185: externalVerticalFaces\nNeighbors:\n170: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 186, "label": "externalVerticalFaces", "shape": "dot", "title": "186: externalVerticalFaces\nNeighbors:\n187: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 187, "label": "Cells", "shape": "dot", "title": "187: Cells\nNeighbors:\n197: externalVerticalFaces\n103: Cells\n140: internalVerticalFaces\n177: internalVerticalFaces\n180: Cells\n182: Cells\n186: externalVerticalFaces\n189: bottomHorizontalFaces\n190: internalHorizontalFaces", "value": 9}, {"color": "#8A518B", "font": {"color": "black"}, "id": 188, "label": "topHorizontalFaces", "shape": "dot", "title": "188: topHorizontalFaces\nNeighbors:\n193: Cells", "value": 1}, {"color": "#D46B6A", "font": {"color": "black"}, "id": 189, "label": "bottomHorizontalFaces", "shape": "dot", "title": "189: bottomHorizontalFaces\nNeighbors:\n187: Cells", "value": 1}, {"color": "#FAA63D", "font": {"color": "black"}, "id": 190, "label": "internalHorizontalFaces", "shape": "dot", "title": "190: internalHorizontalFaces\nNeighbors:\n187: Cells\n180: Cells", "value": 2}, {"color": "#8A518B", "font": {"color": "black"}, "id": 191, "label": "topHorizontalFaces", "shape": "dot", "title": "191: topHorizontalFaces\nNeighbors:\n180: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 192, "label": "externalVerticalFaces", "shape": "dot", "title": "192: externalVerticalFaces\nNeighbors:\n180: Cells", "value": 1}, {"color": "#E7FA5A", "font": {"color": "black"}, "id": 193, "label": "Cells", "shape": "dot", "title": "193: Cells\nNeighbors:\n194: internalVerticalFaces\n196: externalVerticalFaces\n110: Cells\n111: internalVerticalFaces\n179: internalHorizontalFaces\n180: Cells\n182: Cells\n183: internalVerticalFaces\n184: Cells\n188: topHorizontalFaces", "value": 10}, {"color": "#3D349A", "font": {"color": "black"}, "id": 194, "label": "internalVerticalFaces", "shape": "dot", "title": "194: internalVerticalFaces\nNeighbors:\n193: Cells\n180: Cells", "value": 2}, {"color": "#032333", "font": {"color": "black"}, "id": 195, "label": "externalVerticalFaces", "shape": "dot", "title": "195: externalVerticalFaces\nNeighbors:\n180: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 196, "label": "externalVerticalFaces", "shape": "dot", "title": "196: externalVerticalFaces\nNeighbors:\n193: Cells", "value": 1}, {"color": "#032333", "font": {"color": "black"}, "id": 197, "label": "externalVerticalFaces", "shape": "dot", "title": "197: externalVerticalFaces\nNeighbors:\n187: Cells", "value": 1}]);
+                  edges = new vis.DataSet([{"from": 113, "to": 0, "weight": 0}, {"from": 2, "to": 0, "weight": 0}, {"from": 7, "to": 1, "weight": 0}, {"from": 2, "to": 14, "weight": 0}, {"from": 113, "to": 2, "weight": 0}, {"from": 7, "to": 2, "weight": 0}, {"from": 2, "to": 161, "weight": 0}, {"from": 2, "to": 11, "weight": 0}, {"from": 20, "to": 2, "weight": 0}, {"from": 2, "to": 4, "weight": 0}, {"from": 2, "to": 9, "weight": 0}, {"from": 2, "to": 29, "weight": 0}, {"from": 158, "to": 3, "weight": 0}, {"from": 7, "to": 3, "weight": 0}, {"from": 161, "to": 4, "weight": 0}, {"from": 113, "to": 5, "weight": 0}, {"from": 147, "to": 5, "weight": 0}, {"from": 113, "to": 6, "weight": 0}, {"from": 77, "to": 7, "weight": 0}, {"from": 7, "to": 158, "weight": 0}, {"from": 7, "to": 70, "weight": 0}, {"from": 7, "to": 74, "weight": 0}, {"from": 20, "to": 7, "weight": 0}, {"from": 7, "to": 28, "weight": 0}, {"from": 71, "to": 7, "weight": 0}, {"from": 7, "to": 9, "weight": 0}, {"from": 113, "to": 8, "weight": 0}, {"from": 10, "to": 92, "weight": 0}, {"from": 10, "to": 117, "weight": 0}, {"from": 10, "to": 102, "weight": 0}, {"from": 10, "to": 31, "weight": 0}, {"from": 10, "to": 78, "weight": 0}, {"from": 10, "to": 170, "weight": 0}, {"from": 10, "to": 13, "weight": 0}, {"from": 20, "to": 10, "weight": 0}, {"from": 118, "to": 10, "weight": 0}, {"from": 10, "to": 91, "weight": 0}, {"from": 15, "to": 12, "weight": 0}, {"from": 170, "to": 13, "weight": 0}, {"from": 15, "to": 18, "weight": 0}, {"from": 15, "to": 165, "weight": 0}, {"from": 15, "to": 102, "weight": 0}, {"from": 15, "to": 101, "weight": 0}, {"from": 15, "to": 16, "weight": 0}, {"from": 15, "to": 116, "weight": 0}, {"from": 20, "to": 15, "weight": 0}, {"from": 15, "to": 33, "weight": 0}, {"from": 118, "to": 15, "weight": 0}, {"from": 15, "to": 17, "weight": 0}, {"from": 101, "to": 16, "weight": 0}, {"from": 165, "to": 17, "weight": 0}, {"from": 102, "to": 18, "weight": 0}, {"from": 56, "to": 19, "weight": 0}, {"from": 20, "to": 19, "weight": 0}, {"from": 20, "to": 103, "weight": 0}, {"from": 20, "to": 51, "weight": 0}, {"from": 20, "to": 60, "weight": 0}, {"from": 20, "to": 77, "weight": 0}, {"from": 20, "to": 21, "weight": 0}, {"from": 20, "to": 59, "weight": 0}, {"from": 20, "to": 113, "weight": 0}, {"from": 20, "to": 36, "weight": 0}, {"from": 20, "to": 30, "weight": 0}, {"from": 20, "to": 34, "weight": 0}, {"from": 20, "to": 55, "weight": 0}, {"from": 20, "to": 62, "weight": 0}, {"from": 20, "to": 54, "weight": 0}, {"from": 20, "to": 39, "weight": 0}, {"from": 20, "to": 64, "weight": 0}, {"from": 20, "to": 102, "weight": 0}, {"from": 20, "to": 52, "weight": 0}, {"from": 20, "to": 63, "weight": 0}, {"from": 20, "to": 101, "weight": 0}, {"from": 20, "to": 31, "weight": 0}, {"from": 20, "to": 35, "weight": 0}, {"from": 20, "to": 40, "weight": 0}, {"from": 20, "to": 65, "weight": 0}, {"from": 20, "to": 79, "weight": 0}, {"from": 20, "to": 47, "weight": 0}, {"from": 20, "to": 110, "weight": 0}, {"from": 20, "to": 57, "weight": 0}, {"from": 20, "to": 37, "weight": 0}, {"from": 20, "to": 42, "weight": 0}, {"from": 20, "to": 32, "weight": 0}, {"from": 20, "to": 49, "weight": 0}, {"from": 20, "to": 24, "weight": 0}, {"from": 20, "to": 53, "weight": 0}, {"from": 20, "to": 95, "weight": 0}, {"from": 20, "to": 43, "weight": 0}, {"from": 20, "to": 56, "weight": 0}, {"from": 20, "to": 26, "weight": 0}, {"from": 20, "to": 28, "weight": 0}, {"from": 20, "to": 33, "weight": 0}, {"from": 20, "to": 118, "weight": 0}, {"from": 20, "to": 88, "weight": 0}, {"from": 20, "to": 22, "weight": 0}, {"from": 20, "to": 71, "weight": 0}, {"from": 20, "to": 48, "weight": 0}, {"from": 20, "to": 44, "weight": 0}, {"from": 20, "to": 50, "weight": 0}, {"from": 20, "to": 41, "weight": 0}, {"from": 20, "to": 25, "weight": 0}, {"from": 20, "to": 61, "weight": 0}, {"from": 20, "to": 66, "weight": 0}, {"from": 20, "to": 29, "weight": 0}, {"from": 20, "to": 46, "weight": 0}, {"from": 20, "to": 38, "weight": 0}, {"from": 20, "to": 45, "weight": 0}, {"from": 20, "to": 67, "weight": 0}, {"from": 20, "to": 23, "weight": 0}, {"from": 88, "to": 21, "weight": 0}, {"from": 113, "to": 22, "weight": 0}, {"from": 71, "to": 23, "weight": 0}, {"from": 79, "to": 24, "weight": 0}, {"from": 77, "to": 25, "weight": 0}, {"from": 118, "to": 26, "weight": 0}, {"from": 79, "to": 27, "weight": 0}, {"from": 56, "to": 27, "weight": 0}, {"from": 95, "to": 30, "weight": 0}, {"from": 101, "to": 32, "weight": 0}, {"from": 102, "to": 34, "weight": 0}, {"from": 103, "to": 37, "weight": 0}, {"from": 110, "to": 41, "weight": 0}, {"from": 56, "to": 138, "weight": 0}, {"from": 56, "to": 81, "weight": 0}, {"from": 56, "to": 68, "weight": 0}, {"from": 56, "to": 79, "weight": 0}, {"from": 56, "to": 58, "weight": 0}, {"from": 56, "to": 88, "weight": 0}, {"from": 56, "to": 87, "weight": 0}, {"from": 88, "to": 58, "weight": 0}, {"from": 138, "to": 68, "weight": 0}, {"from": 113, "to": 69, "weight": 0}, {"from": 71, "to": 69, "weight": 0}, {"from": 71, "to": 70, "weight": 0}, {"from": 71, "to": 113, "weight": 0}, {"from": 71, "to": 127, "weight": 0}, {"from": 71, "to": 84, "weight": 0}, {"from": 71, "to": 73, "weight": 0}, {"from": 88, "to": 71, "weight": 0}, {"from": 71, "to": 89, "weight": 0}, {"from": 79, "to": 72, "weight": 0}, {"from": 127, "to": 73, "weight": 0}, {"from": 77, "to": 74, "weight": 0}, {"from": 77, "to": 75, "weight": 0}, {"from": 145, "to": 75, "weight": 0}, {"from": 77, "to": 76, "weight": 0}, {"from": 77, "to": 80, "weight": 0}, {"from": 77, "to": 85, "weight": 0}, {"from": 79, "to": 77, "weight": 0}, {"from": 77, "to": 145, "weight": 0}, {"from": 88, "to": 77, "weight": 0}, {"from": 102, "to": 78, "weight": 0}, {"from": 79, "to": 85, "weight": 0}, {"from": 79, "to": 86, "weight": 0}, {"from": 79, "to": 129, "weight": 0}, {"from": 79, "to": 82, "weight": 0}, {"from": 88, "to": 80, "weight": 0}, {"from": 129, "to": 82, "weight": 0}, {"from": 121, "to": 83, "weight": 0}, {"from": 88, "to": 83, "weight": 0}, {"from": 88, "to": 90, "weight": 0}, {"from": 88, "to": 121, "weight": 0}, {"from": 88, "to": 89, "weight": 0}, {"from": 102, "to": 93, "weight": 0}, {"from": 101, "to": 94, "weight": 0}, {"from": 95, "to": 103, "weight": 0}, {"from": 95, "to": 105, "weight": 0}, {"from": 95, "to": 180, "weight": 0}, {"from": 95, "to": 108, "weight": 0}, {"from": 95, "to": 110, "weight": 0}, {"from": 95, "to": 104, "weight": 0}, {"from": 95, "to": 107, "weight": 0}, {"from": 95, "to": 106, "weight": 0}, {"from": 101, "to": 96, "weight": 0}, {"from": 110, "to": 96, "weight": 0}, {"from": 103, "to": 97, "weight": 0}, {"from": 101, "to": 97, "weight": 0}, {"from": 182, "to": 98, "weight": 0}, {"from": 101, "to": 98, "weight": 0}, {"from": 102, "to": 99, "weight": 0}, {"from": 110, "to": 99, "weight": 0}, {"from": 184, "to": 100, "weight": 0}, {"from": 102, "to": 100, "weight": 0}, {"from": 101, "to": 103, "weight": 0}, {"from": 101, "to": 182, "weight": 0}, {"from": 101, "to": 110, "weight": 0}, {"from": 102, "to": 184, "weight": 0}, {"from": 102, "to": 110, "weight": 0}, {"from": 103, "to": 187, "weight": 0}, {"from": 103, "to": 104, "weight": 0}, {"from": 103, "to": 133, "weight": 0}, {"from": 103, "to": 136, "weight": 0}, {"from": 103, "to": 140, "weight": 0}, {"from": 110, "to": 106, "weight": 0}, {"from": 180, "to": 108, "weight": 0}, {"from": 110, "to": 109, "weight": 0}, {"from": 110, "to": 111, "weight": 0}, {"from": 110, "to": 193, "weight": 0}, {"from": 193, "to": 111, "weight": 0}, {"from": 118, "to": 112, "weight": 0}, {"from": 113, "to": 147, "weight": 0}, {"from": 118, "to": 114, "weight": 0}, {"from": 150, "to": 115, "weight": 0}, {"from": 118, "to": 115, "weight": 0}, {"from": 118, "to": 116, "weight": 0}, {"from": 118, "to": 117, "weight": 0}, {"from": 118, "to": 150, "weight": 0}, {"from": 129, "to": 119, "weight": 0}, {"from": 129, "to": 120, "weight": 0}, {"from": 121, "to": 126, "weight": 0}, {"from": 138, "to": 121, "weight": 0}, {"from": 121, "to": 127, "weight": 0}, {"from": 121, "to": 122, "weight": 0}, {"from": 121, "to": 145, "weight": 0}, {"from": 121, "to": 131, "weight": 0}, {"from": 121, "to": 128, "weight": 0}, {"from": 121, "to": 132, "weight": 0}, {"from": 129, "to": 123, "weight": 0}, {"from": 145, "to": 123, "weight": 0}, {"from": 127, "to": 124, "weight": 0}, {"from": 147, "to": 124, "weight": 0}, {"from": 129, "to": 125, "weight": 0}, {"from": 127, "to": 126, "weight": 0}, {"from": 127, "to": 130, "weight": 0}, {"from": 127, "to": 158, "weight": 0}, {"from": 127, "to": 141, "weight": 0}, {"from": 127, "to": 152, "weight": 0}, {"from": 127, "to": 147, "weight": 0}, {"from": 138, "to": 129, "weight": 0}, {"from": 129, "to": 145, "weight": 0}, {"from": 129, "to": 137, "weight": 0}, {"from": 158, "to": 130, "weight": 0}, {"from": 145, "to": 131, "weight": 0}, {"from": 138, "to": 132, "weight": 0}, {"from": 138, "to": 134, "weight": 0}, {"from": 138, "to": 135, "weight": 0}, {"from": 138, "to": 137, "weight": 0}, {"from": 138, "to": 139, "weight": 0}, {"from": 187, "to": 140, "weight": 0}, {"from": 150, "to": 142, "weight": 0}, {"from": 145, "to": 143, "weight": 0}, {"from": 150, "to": 144, "weight": 0}, {"from": 145, "to": 149, "weight": 0}, {"from": 145, "to": 158, "weight": 0}, {"from": 145, "to": 148, "weight": 0}, {"from": 150, "to": 146, "weight": 0}, {"from": 170, "to": 146, "weight": 0}, {"from": 147, "to": 154, "weight": 0}, {"from": 147, "to": 155, "weight": 0}, {"from": 147, "to": 161, "weight": 0}, {"from": 147, "to": 162, "weight": 0}, {"from": 147, "to": 156, "weight": 0}, {"from": 158, "to": 149, "weight": 0}, {"from": 150, "to": 165, "weight": 0}, {"from": 150, "to": 153, "weight": 0}, {"from": 150, "to": 170, "weight": 0}, {"from": 150, "to": 151, "weight": 0}, {"from": 165, "to": 153, "weight": 0}, {"from": 158, "to": 157, "weight": 0}, {"from": 158, "to": 160, "weight": 0}, {"from": 158, "to": 161, "weight": 0}, {"from": 158, "to": 159, "weight": 0}, {"from": 161, "to": 160, "weight": 0}, {"from": 161, "to": 171, "weight": 0}, {"from": 161, "to": 172, "weight": 0}, {"from": 161, "to": 173, "weight": 0}, {"from": 161, "to": 162, "weight": 0}, {"from": 170, "to": 163, "weight": 0}, {"from": 184, "to": 164, "weight": 0}, {"from": 165, "to": 164, "weight": 0}, {"from": 165, "to": 182, "weight": 0}, {"from": 165, "to": 184, "weight": 0}, {"from": 165, "to": 169, "weight": 0}, {"from": 165, "to": 166, "weight": 0}, {"from": 165, "to": 167, "weight": 0}, {"from": 184, "to": 168, "weight": 0}, {"from": 170, "to": 168, "weight": 0}, {"from": 182, "to": 169, "weight": 0}, {"from": 170, "to": 178, "weight": 0}, {"from": 170, "to": 184, "weight": 0}, {"from": 170, "to": 185, "weight": 0}, {"from": 184, "to": 174, "weight": 0}, {"from": 182, "to": 175, "weight": 0}, {"from": 184, "to": 176, "weight": 0}, {"from": 182, "to": 177, "weight": 0}, {"from": 187, "to": 177, "weight": 0}, {"from": 182, "to": 179, "weight": 0}, {"from": 193, "to": 179, "weight": 0}, {"from": 180, "to": 192, "weight": 0}, {"from": 180, "to": 194, "weight": 0}, {"from": 180, "to": 187, "weight": 0}, {"from": 180, "to": 191, "weight": 0}, {"from": 180, "to": 190, "weight": 0}, {"from": 180, "to": 193, "weight": 0}, {"from": 180, "to": 195, "weight": 0}, {"from": 182, "to": 181, "weight": 0}, {"from": 182, "to": 187, "weight": 0}, {"from": 182, "to": 193, "weight": 0}, {"from": 184, "to": 183, "weight": 0}, {"from": 193, "to": 183, "weight": 0}, {"from": 184, "to": 193, "weight": 0}, {"from": 187, "to": 186, "weight": 0}, {"from": 187, "to": 197, "weight": 0}, {"from": 187, "to": 190, "weight": 0}, {"from": 187, "to": 189, "weight": 0}, {"from": 193, "to": 188, "weight": 0}, {"from": 193, "to": 194, "weight": 0}, {"from": 193, "to": 196, "weight": 0}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true
+    },
+    "edges": {
+        "color": {
+            "inherit": false
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
